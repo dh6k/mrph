@@ -2,7 +2,7 @@
 [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/morphe_magisk)
 [![CI](https://github.com/dh6k/mrph/actions/workflows/ci.yml/badge.svg?event=schedule)](https://github.com/dh6k/mrph/actions/workflows/ci.yml)
 
-Extensive Morphe builder for personal use
+Extensive Morphe builder for personal use, compatible with [Obtainium](https://github.com/ImranR98/Obtainium)
 
 Get the [latest CI release](https://github.com/dh6k/mrph/releases).
 
@@ -10,7 +10,7 @@ Use [**zygisk-detach**](https://github.com/j-hc/zygisk-detach) to detach YouTube
 
 <details><summary><big>Features</big></summary>
 <ul>
- <li>Support all present and future Morphe and <a href="https://github.com/inotia00/morphe-patches">Morphe Extended</a> apps</li>
+ <li>Support all present and future <a href="https://github.com/MorpheApp/morphe-patches">Morphe</a> apps</li>
  <li> Can build Magisk modules and non-root APKs</li>
  <li> Updated daily with the latest versions of apps and patches</li>
  <li> Optimize APKs and modules for size</li>
