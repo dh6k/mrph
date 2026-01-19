@@ -26,11 +26,8 @@ Use [**zygisk-detach**](https://github.com/j-hc/zygisk-detach) to detach YouTube
 Note that the <a href="../../actions/workflows/ci.yml">CI workflow</a> is scheduled to build the modules and APKs everyday using GitHub Actions if there is a change in Morphe patches. You may want to disable it.
 </details>
 
-## To include/exclude patches or patch other apps
+## To build
 
- * Star the repo :eyes:
- * Use the repo as a [template](https://github.com/new?template_name=morphe-magisk-module&template_owner=j-hc)
- * Customize [`config.toml`](./config.toml) using [morphe-config-gen](https://j-hc.github.io/morphe-config-gen/)
  * Run the build [workflow](../../actions/workflows/build.yml)
  * Grab your modules and APKs from [releases](../../releases)
 
