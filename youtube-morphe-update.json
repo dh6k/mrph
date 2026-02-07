@@ -1,6 +1,6 @@
 {
-  "version": "v21.04.223 (patches 1.10.0.mpp)",
-  "versionCode": 14,
-  "zipUrl": "https://github.com/dh6k/mrph/releases/download/14/yt-mrph-magisk-v21.04.223-all.zip",
+  "version": "v21.06.251 (patches 1.11.0.mpp)",
+  "versionCode": 15,
+  "zipUrl": "https://github.com/dh6k/mrph/releases/download/15/yt-mrph-magisk-v21.06.251-all.zip",
   "changelog": "https://raw.githubusercontent.com/dh6k/mrph/update/build.md"
 }
