@@ -201,11 +201,20 @@ config_update() {
 _req() {
 	local ip="$1" op="$2"
 	shift 2
+	local status
 	if [ "$op" = - ]; then
-		if ! curl -L -c "$TEMP_DIR/cookie.txt" -b "$TEMP_DIR/cookie.txt" --connect-timeout 5 --retry 0 --fail -s -S "$@" "$ip"; then
+		local tmp
+		tmp=$(mktemp) || return 1
+		status=$(curl -L -c "$TEMP_DIR/cookie.txt" -b "$TEMP_DIR/cookie.txt" --connect-timeout 5 --retry 0 -s -S "$@" "$ip" -o "$tmp" -w "%{http_code}")
+		local ret=$?
+		REQ_LAST_STATUS="$status"
+		if [ $ret -ne 0 ] || [ "$status" -ge 400 ] || [ "$status" = 000 ]; then
 			epr "Request failed: $ip"
+			rm -f "$tmp"
 			return 1
 		fi
+		cat "$tmp"
+		rm -f "$tmp"
 	else
 		if [ -f "$op" ]; then return; fi
 		local dlp
@@ -214,14 +223,38 @@ _req() {
 			while [ -f "$dlp" ]; do sleep 1; done
 			return
 		fi
-		if ! curl -L -c "$TEMP_DIR/cookie.txt" -b "$TEMP_DIR/cookie.txt" --connect-timeout 5 --retry 0 --fail -s -S "$@" "$ip" -o "$dlp"; then
+		status=$(curl -L -c "$TEMP_DIR/cookie.txt" -b "$TEMP_DIR/cookie.txt" --connect-timeout 5 --retry 0 -s -S "$@" "$ip" -o "$dlp" -w "%{http_code}")
+		local ret=$?
+		REQ_LAST_STATUS="$status"
+		if [ $ret -ne 0 ] || [ "$status" -ge 400 ] || [ "$status" = 000 ]; then
 			epr "Request failed: $ip"
+			rm -f "$dlp"
 			return 1
 		fi
 		mv -f "$dlp" "$op"
 	fi
 }
 req() { _req "$1" "$2" -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0"; }
+apkmirror_req() {
+	local url="$1" op="$2"
+	shift 2
+	local base_headers=(
+		-H "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0"
+		-H "Referer: https://www.apkmirror.com/"
+		-H "Accept-Language: en-US,en;q=0.9"
+	)
+	if _req "$url" "$op" "${base_headers[@]}" "$@"; then return 0; fi
+	if [ "$REQ_LAST_STATUS" = 403 ]; then
+		epr "APKMirror request forbidden (403) for $url. Retrying with full headers..."
+		local full_headers=(
+			"${base_headers[@]}"
+			-H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+		)
+		_req "$url" "$op" "${full_headers[@]}" "$@"
+		return $?
+	fi
+	return 1
+}
 gh_req() { _req "$1" "$2" -H "$GH_HEADER"; }
 gh_dl() {
 	if [ ! -f "$1" ]; then
@@ -337,7 +370,7 @@ dl_apkmirror() {
 		apkmname=$($HTMLQ "h1.marginZero" --text <<<"$__APKMIRROR_RESP__")
 		apkmname="${apkmname,,}" apkmname="${apkmname// /-}" apkmname="${apkmname//[^a-z0-9-]/}"
 		url="${url}/${apkmname}-${version//./-}-release/"
-		resp=$(req "$url" -) || return 1
+		resp=$(apkmirror_req "$url" -) || return 1
 		node=$($HTMLQ "div.table-row.headerFont:nth-last-child(1)" -r "span:nth-child(n+3)" <<<"$resp")
 		if [ "$node" ]; then
 			for current_dpi in $dpi; do
@@ -349,22 +382,22 @@ dl_apkmirror() {
 				done
 			done
 			[ -z "$dlurl" ] && return 1
-			resp=$(req "$dlurl" -)
+			resp=$(apkmirror_req "$dlurl" -)
 		fi
 		url=$(echo "$resp" | $HTMLQ --base https://www.apkmirror.com --attribute href "a.btn") || return 1
-		url=$(req "$url" - | $HTMLQ --base https://www.apkmirror.com --attribute href "span > a[rel = nofollow]") || return 1
+		url=$(apkmirror_req "$url" - | $HTMLQ --base https://www.apkmirror.com --attribute href "span > a[rel = nofollow]") || return 1
 	fi
 
 	if [ "$is_bundle" = true ]; then
-		req "$url" "${output}.apkm" || return 1
+		apkmirror_req "$url" "${output}.apkm" || return 1
 		merge_splits "${output}.apkm" "${output}"
 	else
-		req "$url" "${output}" || return 1
+		apkmirror_req "$url" "${output}" || return 1
 	fi
 }
 get_apkmirror_vers() {
 	local vers apkm_resp
-	apkm_resp=$(req "https://www.apkmirror.com/uploads/?appcategory=${__APKMIRROR_CAT__}" -)
+	apkm_resp=$(apkmirror_req "https://www.apkmirror.com/uploads/?appcategory=${__APKMIRROR_CAT__}" -)
 	vers=$(sed -n 's;.*Version:</span><span class="infoSlide-value">\(.*\) </span>.*;\1;p' <<<"$apkm_resp" | awk '{$1=$1}1')
 	if [ "$__AAV__" = false ]; then
 		local IFS=$'\n'
@@ -380,7 +413,7 @@ get_apkmirror_vers() {
 }
 get_apkmirror_pkg_name() { sed -n 's;.*id=\(.*\)" class="accent_color.*;\1;p' <<<"$__APKMIRROR_RESP__"; }
 get_apkmirror_resp() {
-	__APKMIRROR_RESP__=$(req "${1}" -) || return 1
+	__APKMIRROR_RESP__=$(apkmirror_req "${1}" -) || return 1
 	__APKMIRROR_CAT__="${1##*/}"
 }
 
